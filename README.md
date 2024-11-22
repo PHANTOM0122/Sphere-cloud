@@ -15,10 +15,12 @@ Experimental results on public RGB-D datasets demonstrate sphere cloud achieves 
 
 
 ## :white_check_mark: Two public datasets!
-- Indoor (**_7 Scenes_**): [Learning to navigate the energy landscape](https://graphics.stanford.edu/projects/reloc/) </br>
-- Indoor (**_12 Scenes_**): [Learning to navigate the energy landscape](https://graphics.stanford.edu/projects/reloc/) </br>
+- Indoor [(**_7 Scenes_**)](https://www.microsoft.com/en-us/research/project/rgb-d-dataset-7-scenes/) </br>
+- Indoor [(**_12 Scenes_**)](https://graphics.stanford.edu/projects/reloc/) </br> </br>
+We used the evaluation benchmark from [Brachman et al.](https://github.com/tsattler/visloc_pseudo_gt_limitations), using `dslam pGT`. 
 
-## :running: How to run our code!
+
+## :running: How to build and run our code!
 **Our code built upon the [repository of Paired-Point Lifting(PPL), CVPR2023](https://github.com/Fusroda-h/ppl/tree/main), accessed at June, 2023**. </br>
 We borrowed most of the implementation of localization and inversion framework from PPL repository. </br>
 Thanks to [Chunghwan Lee](https://github.com/Fusroda-h) for your contribution. </br>
@@ -107,13 +109,11 @@ The recovered images will be saved in `dataset/Dataset_name/Scene/invsfmIMG/`.
 
 ## Citation
 ```bibtex
-@InProceedings{moon2024raycloud,
-    author    = {Moon, Heejoon and Lee, Chunghwan and Hong, Je Hyeong},
-    title     = {Efficient Privacy-Preserving Visual Localization Using 3D Ray Clouds},
-    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-    month     = {June},
+@InProceedings{moon2024sphere,
+    author    = {Moon, Heejoon and Lee, Jongwoo and Kim, Jeonggon and Hong, Je Hyeong},
+    title     = {Depth-guided Privacy-Preserving Visual Localization Using 3D Sphere Clouds},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (BMVC)},
     year      = {2024},
-    pages     = {9773-9783}
 }
 ```
 
