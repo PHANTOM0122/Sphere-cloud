@@ -17,30 +17,29 @@ Experimental results on public RGB-D datasets demonstrate sphere cloud achieves 
 ## :white_check_mark: Two public datasets!
 - Indoor [(**_7 Scenes_**)](https://www.microsoft.com/en-us/research/project/rgb-d-dataset-7-scenes/) </br>
 - Indoor [(**_12 Scenes_**)](https://graphics.stanford.edu/projects/reloc/) </br> </br>
-We used the evaluation benchmark from [Brachman et al.](https://github.com/tsattler/visloc_pseudo_gt_limitations), using `dslam pGT`. 
+We used the evaluation benchmark from [Brachmann et al.](https://github.com/tsattler/visloc_pseudo_gt_limitations), using `dslam pGT`. 
 
 
 ## :running: How to build and run our code!
-**Our code built upon the [repository of Paired-Point Lifting(PPL), CVPR2023](https://github.com/Fusroda-h/ppl/tree/main), accessed at June, 2023**. </br>
-We borrowed most of the implementation of localization and inversion framework from PPL repository. </br>
-Thanks to [Chunghwan Lee](https://github.com/Fusroda-h) for your contribution. </br>
 
 - **Environment setting**
-
 Make a new folder `/Myfolder`.
 Make a docker container that fits your environment with a python version 3.9.
 Mount the docker volume with the `-v /Myfolder/:/workspace/`.
 
-:point_right: Clone the git `git clone https://github.com/PHANTOM0122/Ray-cloud`
-Download `eigen-3.4.0.tar.gz` library from https://eigen.tuxfamily.org/index.php?title=Main_Page to run poselib.
+Clone the git <br>
+```bash 
+git clone https://github.com/PHANTOM0122/Sphere-cloud
+```
 
+Download `eigen-3.4.0.tar.gz` library from https://eigen.tuxfamily.org/index.php?title=Main_Page to run poselib.
 ```bash
-cd Ray-cloud
+cd Sphere-cloud
 wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
 ```
 
 :point_right: To properly build `poselib`, download the rest of the folders from the [PoseLib](https://github.com/vlarsson/PoseLib).
-We only uploaded the customized code from PoseLib implementing P6L and P5+1R solver.
+We only uploaded the customized code from PoseLib implementing P6L and our modified P3P solver. <br>
 
 ```bash
 cd ..
@@ -51,9 +50,9 @@ git checkout ce7bf181731e4045f990c7e90e93716fe7465d56
 # Overwrite customized local poselib to cloned poselib
 # And move back to original directory
 cd ../
-cp -rf Ray-cloud/PoseLib/* PoseLib/
-rm -r Ray-cloud/PoseLib
-mv PoseLib Ray-cloud/PoseLib
+cp -rf Sphere-cloud/PoseLib/* PoseLib/
+rm -r Sphere-cloud/PoseLib
+mv PoseLib Sphere-cloud/PoseLib
 ```
 
 :point_right: Since InvSfM code by Pittaluga et al. is written in tensorflow.v1, Chanhyuk Yun rewritten the whole code to pytorch for the ease of use ([invsfm_torch](https://github.com/ChanhyukYun/invSfM_torch)).
@@ -62,7 +61,7 @@ Position the `wts` folder to `utils/invsfm/wts`.
 Then, our code will automatically change the weights to torch version and utilize it.
 
 ```bash
-cd Ray-cloud
+cd Sphere-cloud
 bash start.sh
 ```
 
@@ -112,13 +111,13 @@ The recovered images will be saved in `dataset/Dataset_name/Scene/invsfmIMG/`.
 @InProceedings{moon2024sphere,
     author    = {Moon, Heejoon and Lee, Jongwoo and Kim, Jeonggon and Hong, Je Hyeong},
     title     = {Depth-guided Privacy-Preserving Visual Localization Using 3D Sphere Clouds},
-    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (BMVC)},
+    booktitle = {Proceedings of the British Machine Vision Conference (BMVC)},
     year      = {2024},
 }
 ```
 
 ## License
-A patent application for the Raycloud algorithm and the relevant software has been submitted and is under review for registration(PCT).
-Raycloud is licensed under the CC-BY-NC-SA-4.0 license limiting any commercial use.
+A patent application for the Spherecloud algorithm and the relevant software has been submitted and is under review for registration(PCT).
+Spherecloud is licensed under the CC-BY-NC-SA-4.0 license limiting any commercial use.
 [PoseLib](https://github.com/vlarsson/PoseLib) is licensed under the BSD 3-Clause license.
 
