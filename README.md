@@ -13,6 +13,15 @@ To address these issues, we introduce a simple yet effective cloud construction 
  propose an efficient localization framework to guide the translation scale by utilizing absolute depth maps acquired from on-device time-of-flight (ToF) sensors.
 Experimental results on public RGB-D datasets demonstrate sphere cloud achieves competitive privacy-preserving ability and localization runtime while not excessively compensating the pose estimation accuracy compared to other depth-guided localization methods.
 
+https://github.com/user-attachments/assets/86c5dd48-4644-44f4-91d0-0dac732d01f3 
+
+https://github.com/user-attachments/assets/cc71f34e-64dc-4b11-8534-02e178a6c5b2
+
+*************************************
+### :rocket: **News** 
+:fire: [2024.11.23] We're released the part of our intitial code and now working on cleaning our code for full relese. Please keep stay tuned for the full release!
+
+<!--
 
 ## :white_check_mark: Two public datasets!
 - Indoor [(**_7 Scenes_**)](https://www.microsoft.com/en-us/research/project/rgb-d-dataset-7-scenes/) </br>
@@ -106,6 +115,8 @@ The results are stored in `output` folder.
 In the folder, recovered point clouds, pose errors, and recovered image qualities are stored in `Dataset_name/Scene/L2Precon`,`Dataset_name/Scene/PoseAccuracy`,`Dataset_name/Scene/Quality` respectively.
 The recovered images will be saved in `dataset/Dataset_name/Scene/invsfmIMG/`.
 
+-->
+
 ## Citation
 ```bibtex
 @InProceedings{moon2024sphere,
@@ -115,7 +126,6 @@ The recovered images will be saved in `dataset/Dataset_name/Scene/invsfmIMG/`.
     year      = {2024},
 }
 ```
-
 ## License
 A patent application for the Spherecloud algorithm and the relevant software has been submitted and is under review for registration(PCT).
 Spherecloud is licensed under the CC-BY-NC-SA-4.0 license limiting any commercial use.
