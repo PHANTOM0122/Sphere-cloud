@@ -19,7 +19,7 @@ https://github.com/user-attachments/assets/cc71f34e-64dc-4b11-8534-02e178a6c5b2
 
 *************************************
 ### :rocket: **News** 
-:fire: [2024.11.23] We're released the part of our intitial code and now working on cleaning our code for full relese. Please keep stay tuned for the full release!
+:fire: [2024.11.23] We're released the part of our intitial code and now working on extending for journal submission. We'll release the full release after the journal submission. Please keep stay tuned for the full release!
 
 <!--
 
