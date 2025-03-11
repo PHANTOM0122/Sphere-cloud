@@ -62,6 +62,9 @@ The codes `database.py` and `read_write_model.py` is from [COLMAP](https://githu
 
 :white_check_mark:	
 Directories of data are organized like below.
+We offer sample dataset of 12scenes - apt1_kitchen. 
+For inversion (pgt_triangulated), please download at [here](https://drive.google.com/drive/folders/1hZaNCcBGneO8yyu9oRTScDfUSePHxbZr?usp=sharing).
+
 ```bash
 ├─data 
 |  ├─dataset(12scenes, 7scenes)
