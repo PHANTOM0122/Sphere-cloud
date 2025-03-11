@@ -21,8 +21,6 @@ https://github.com/user-attachments/assets/cc71f34e-64dc-4b11-8534-02e178a6c5b2
 ### :rocket: **News** 
 :fire: [2024.11.23] We're released the part of our intitial code and now working on extending for journal submission. We'll release the full release after the journal submission. Please keep stay tuned for the full release!
 
-<!--
-
 ## :white_check_mark: Two public datasets!
 - Indoor [(**_7 Scenes_**)](https://www.microsoft.com/en-us/research/project/rgb-d-dataset-7-scenes/) </br>
 - Indoor [(**_12 Scenes_**)](https://graphics.stanford.edu/projects/reloc/) </br> </br>
@@ -30,12 +28,6 @@ We used the evaluation benchmark from [Brachmann et al.](https://github.com/tsat
 
 
 ## :running: How to build and run our code!
-
-- **Environment setting**
-Make a new folder `/Myfolder`.
-Make a docker container that fits your environment with a python version 3.9.
-Mount the docker volume with the `-v /Myfolder/:/workspace/`.
-
 Clone the git <br>
 ```bash 
 git clone https://github.com/PHANTOM0122/Sphere-cloud
@@ -55,7 +47,7 @@ cd ..
 git clone https://github.com/PoseLib/PoseLib.git
 # Checkout to the version before refactoring "pybind"
 cd PoseLib
-git checkout ce7bf181731e4045f990c7e90e93716fe7465d56
+git checkout e5eee3f..0e113ab
 # Overwrite customized local poselib to cloned poselib
 # And move back to original directory
 cd ../
@@ -88,10 +80,9 @@ The codes `database.py` and `read_write_model.py` is from [COLMAP](https://githu
 - **Run the main code (pose estimation, recovering point, restoring image at once)**
 
 :white_check_mark:	
-You can download example dataset on [Sample_data](https://1drv.ms/u/s!AlaAkmWU9TVG6yIqNBD0PlN43Ewe?e=2gIN1F).
 Directories are organized like below.
 ```bash
-├─Dataset_type (energy, cambridge)
+├─Dataset_type (7scenes, 12scenes)
 │  └─Scene (apt1_living, kingscolledge)
 │      ├─bundle_maponly
 │      ├─images_maponly
@@ -100,7 +91,6 @@ Directories are organized like below.
 │      ├─sparse_maponly
 │      └─sparse_queryadded
 ```
-The construction of map and queries are explained in [here](documents/Lee_et_al_cvpr23_supplemat.pdf).
 
 :point_right: To generate the each type of line cloud and to estimate pose & recover the point cloud from this
 
