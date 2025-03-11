@@ -1,0 +1,12 @@
+python3 main.py -d apt1_kitchen -e True -r False -t False -i False -g cuda:0
+python3 main.py -d apt1_living -e True -r False -t False -i False -g cuda:0
+python3 main.py -d apt2_living -e True -r False -t False -i False -g cuda:0
+python3 main.py -d apt2_kitchen -e True -r False -t False -i False -g cuda:0
+python3 main.py -d apt2_bed -e True -r False -t False -i False -g cuda:0
+python3 main.py -d apt2_luke -e True -r False -t False -i False -g cuda:0
+python3 main.py -d office1_lounge -e True -r False -t False -i False -g cuda:0
+python3 main.py -d office1_manolis -e True -r False -t False -i False -g cuda:0
+python3 main.py -d office1_gates381 -e True -r False -t False -i False -g cuda:0
+python3 main.py -d office1_gates362 -e True -r False -t False -i False -g cuda:0
+python3 main.py -d office2_5a -e True -r False -t False -i False -g cuda:0
+python3 main.py -d office2_5b -e True -r False -t False -i False -g cuda:0
