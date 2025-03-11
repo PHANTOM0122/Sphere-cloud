@@ -61,16 +61,31 @@ The codes `database.py` and `read_write_model.py` is from [COLMAP](https://githu
 - **Run the main code (pose estimation, recovering point, restoring image at once)**
 
 :white_check_mark:	
-Directories are organized like below.
+Directories of data are organized like below.
 ```bash
-├─Dataset_type (7scenes, 12scenes)
-│  └─Scene (apt1_living, kingscolledge)
-│      ├─bundle_maponly
-│      ├─images_maponly
-│      ├─query
-│      ├─sparse_gt
-│      ├─sparse_maponly
-│      └─sparse_queryadded
+├─data 
+|  ├─dataset(12scenes, 7scenes)
+│    └─Scene (apt1_living, chess)
+│      ├─old_gt_(re)triangulated (From Brachman et al., ICCV 2021)
+|          ├─ raw_depth: Calibrated Depth Images
+|          ├─ cameras.bin
+|          ├─ images.bin
+|          ├─ points3D.bin
+|          ├─ list_test.txt: Text of query images
+|          ├─ points3D_with_fakeray_aug1_var0_10: Sphere cloud with 50% TP ratio
+|          ├─ points3D_with_fakeray_aug2_var0_10: Sphere cloud with 33% TP ratio
+|          ├─ points3D_with_fakeray_aug3_var0_10: Sphere cloud with 25% TP ratio
+│      ├─pgt_triangulated 
+|          ├─ cameras.bin
+|          ├─ cameras.txt
+|          ├─ images.bin
+|          ├─ images.txt
+|          ├─ points3D.bin
+|          ├─ points3D.txt
+|          ├─ database.db
+|          ├─ list_test.txt: Text of query images    
+│      ├─test (RGB query images)
+|         ├─rgb        
 ```
 
 :point_right: To generate the each type of line cloud and to estimate pose & recover the point cloud from this
