@@ -15,6 +15,10 @@ cmake -DCMAKE_INSTALL_PREFIX=// ..
 make install
 echo Build eigen completed!
 
+# pip package install
+pip install pybind11 numpy opencv-python tqdm matplotlib scikit-learn scikit-image torch pandas open3d
+apt-get install libgl1-mesa-glx -y
+
 echo Build poselib
 cd ../../PoseLib
 if [ -d "_build" ]; then
@@ -26,7 +30,7 @@ cmake --build _build/ --target install -j 8
 cmake --build _build/ --target pip-package
 cmake --build _build/ --target install-pip-package
 
-install colmap
+# install colmap
 cd ../../
 apt-get install -y git cmake build-essential libboost-program-options-dev libboost-filesystem-dev libboost-graph-dev \
                              libboost-system-dev libboost-test-dev libeigen3-dev libsuitesparse-dev libfreeimage-dev \
