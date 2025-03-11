@@ -37,19 +37,19 @@ class Master(metaclass=ABCMeta):
     def __init__(self, cur_dir, dataset):
         self.dataset = dataset
         self.curdir = cur_dir
-
-        self.pipeline = VAR.LOCALIZATION_TYPE
+        self.pipeline = VAR.PIPELINE_TYPE
         
         if self.pipeline == 'relocalization':
-            dataset_path = os.path.join(cur_dir, VAR.DATASET_MOUNT, VAR.getDatasetName(self.dataset)+'_reference_models', self.dataset)
+            print('Relocalization pipeline!')
+            dataset_path = os.path.join(cur_dir, VAR.DATASET_MOUNT, VAR.getDatasetName(self.dataset), self.dataset)
             self.basepath = dataset_path
             pGT_type = VAR.PGT_TYPE
             
             self.output_path = os.path.join(cur_dir, "output", VAR.getDatasetName(self.dataset), self.dataset)
             
             self.pts_2d_query = read_images_binary(os.path.join(dataset_path, pGT_type, "images.bin"))
-            self.pts_3d_query = read_points3D_binary(os.path.join(dataset_path, pGT_type,"points3D.bin")) 
-            
+            self.pts_3d_query_origin = read_points3D_binary(os.path.join(dataset_path, pGT_type,"points3D.bin"))
+
             if self.map_type == 'Spherecloud':            
                 if VAR.TP_RATIO == 100:
                     self.pts_3d_query = read_points3D_binary(os.path.join(dataset_path, pGT_type,"points3D.bin"))
@@ -60,20 +60,23 @@ class Master(metaclass=ABCMeta):
                 elif VAR.TP_RATIO == 25:
                     self.pts_3d_query = read_points3D_text(os.path.join(dataset_path,  pGT_type, "points3D_with_fakeray_aug3_var0_10.txt"))
 
+            else: ## For Point cloud
+                self.pts_3d_query = read_points3D_binary(os.path.join(dataset_path, pGT_type,"points3D.bin"))
+
             self.camera_dict_gt = read_cameras_binary(os.path.join(dataset_path, pGT_type, "cameras.bin"))
             self.image_dict_gt = read_images_binary(os.path.join(dataset_path, pGT_type, "images.bin"))
             
             query_txt_path = os.path.join(dataset_path, pGT_type, "list_test.txt")
         
-        elif self.pipeline == 'reconstruction':
-            dataset_path = os.path.join(cur_dir, VAR.DATASET_MOUNT, 'jeonggon_dataset', 'dataset', VAR.getDatasetName(self.dataset), self.dataset)
+        elif self.pipeline == 'recovery':
+            dataset_path = os.path.join(cur_dir, VAR.DATASET_MOUNT, VAR.getDatasetName(self.dataset), self.dataset)
             self.basepath = dataset_path
             pGT_type = VAR.PGT_TYPE
             
             self.output_path = os.path.join(cur_dir, "output", VAR.getDatasetName(self.dataset), self.dataset)
             
             self.pts_2d_query = read_images_binary(os.path.join(dataset_path, pGT_type, "images.bin"))
-            self.pts_3d_query = read_points3D_binary(os.path.join(dataset_path, pGT_type,"points3D.bin")) 
+            self.pts_3d_query_origin = read_points3D_binary(os.path.join(dataset_path, pGT_type,"points3D.bin")) 
             
             if self.map_type == 'Spherecloud':            
                 if VAR.TP_RATIO == 100:
@@ -84,16 +87,14 @@ class Master(metaclass=ABCMeta):
                     self.pts_3d_query = read_points3D_text(os.path.join(dataset_path,  pGT_type, "points3D_with_fakeray_aug2_var0_10.txt"))
                 elif VAR.TP_RATIO == 25:
                     self.pts_3d_query = read_points3D_text(os.path.join(dataset_path,  pGT_type, "points3D_with_fakeray_aug3_var0_10.txt"))
-
+            else: ## For Point Cloud
+                self.pts_3d_query = read_points3D_binary(os.path.join(dataset_path, pGT_type,"points3D.bin"))
+                
             self.camera_dict_gt = read_cameras_binary(os.path.join(dataset_path, pGT_type, "cameras.bin"))
             self.image_dict_gt = read_images_binary(os.path.join(dataset_path, pGT_type, "images.bin"))
             
             query_txt_path = os.path.join(dataset_path, pGT_type, "list_test.txt")
-        
-        # Outlier removal step
-        self.pts_3d_query, self.pts_2d_query = remove_outliers(self.pts_3d_query,self.pts_2d_query, VAR.THR_OUT_NN,VAR.THR_OUT_STD)
-        self.pts_3d_query, self.pts_2d_query = remove_overlap_pts(self.pts_3d_query, self.pts_2d_query)
-        
+
         self.queryNames, self.queryIds = pe.get_query_images(query_txt_path, self.pts_2d_query, VAR.PGT_TYPE)
         
         self.scale = VAR.getScale(self.dataset)
@@ -117,7 +118,7 @@ class Master(metaclass=ABCMeta):
      List point cloud to line cloud.
      Construct point to line, line to point dictionary
 
-     Variable.py: (PC, OLC, PPL, PPL+).
+     Variable.py: (PC, Spherecloud).
     """
     @abstractmethod
     def makeLineCloud(self):
@@ -169,21 +170,20 @@ class Master(metaclass=ABCMeta):
     def savePoseAccuracy(self, res, gt, cam, time):
         
         # IF use centroid
-        if self.map_type == "Spherecloud": # Single center based ray Cloud
-            error_r, error_t = vector.calculate_loss_centroid(gt, res, self.centroid_pt)
+        if self.map_type == "Spherecloud":
+            if self.use_pc_centroid:
+                error_r, error_t = vector.calculate_loss_centroid(gt, res, self.centroid_pt)
+            else:
+                error_r, error_t = vector.calculate_loss(gt, res)
         else:
             error_r, error_t = vector.calculate_loss(gt, res)
         
         # Get RANSAC results
-        if VAR.POSE_SOLVER != 'initialGT':
-            iterations = res[1]['iterations']
-            inlier_ratio = res[1]['inlier_ratio']
-        else:
-            iterations = 0
-            inlier_ratio = 0
+        iterations = res[1]['iterations']
+        inlier_ratio = res[1]['inlier_ratio']
             
         print('error_r:', error_r, 'degree')
-        print('error_t:', error_t)
+        print('error_t:', error_t, 'm \n')
         
         # Append localization results
         self.resultPose.append([res[0].q, res[0].t, error_r, error_t, time, iterations, inlier_ratio])
@@ -205,15 +205,14 @@ class Master(metaclass=ABCMeta):
         os.makedirs(pose_output_path, exist_ok=True)
         print("Saving pose estimation result.", self.dataset, "Sparsity: ", sparsity_level, " Noise: ", noise_level)
         
-        # example filename: OLC_gerrard_hall_SPF_sp0.05_n0.0_sw0.txt
         filename = "_".join([self.map_type, self.dataset, "NA", "sp"+str(sparsity_level), "n"+str(noise_level), "sw0"]) + ".txt"
         
         if self.map_type.lower() == 'spherecloud':
             if VAR.USE_DEPTH_ORACLE:
-                filename = "_".join([self.map_type, "oracle", f"TP{VAR.TP_RATIO}%", self.dataset, "NA", "sp" + str(sparsity_level), "n" + str(noise_level), "sw0"]) + ".txt" # oracle            
+                filename = "_".join([self.map_type, "oracle", f"TP{VAR.TP_RATIO}%", self.dataset, f"LAMBDA{VAR.LAMBDA2}", "sp" + str(sparsity_level), "n" + str(noise_level), "sw0"]) + ".txt" # oracle            
             else:
-                filename = "_".join([self.map_type, "raw", f"TP{VAR.TP_RATIO}%", self.dataset, "NA", "sp" + str(sparsity_level), "n" + str(noise_level), "sw0"]) + ".txt" # RAW depth
-                    
+                filename = "_".join([self.map_type, "raw", f"TP{VAR.TP_RATIO}%", self.dataset, f"LAMBDA{VAR.LAMBDA2}", "sp" + str(sparsity_level), "n" + str(noise_level), "sw0"]) + ".txt" # RAW depth
+
         mean_r_error = -1
         median_r_error = -1
         mean_t_error = -1
@@ -301,76 +300,6 @@ class Master(metaclass=ABCMeta):
         _fname = self.dataset + "_" + self.map_type + ".csv"
         _res_csv.to_csv(os.path.join(pose_output_path, _fname))
 
-
-    """
-     Create 2D points - 3D line mapper dictionary.
-     The dictionary is used when constructing sparse line cloud
-    """
-    def mapPointtoPPL(self):
-        line_val_to_int = defaultdict(lambda :1e9)
-
-        half_size = len(self.points_3D[0])
-        for idx_to_id in self.ind_to_id:
-            for i, k in idx_to_id.items():
-                self.pts_to_line[k] = self.line_3d[i]
-
-                hashKey = line.getHash(self.line_3d[i])
-                # Line Value : Index Integer 
-                line_val_to_int[hashKey] = min(i, line_val_to_int[hashKey])
-
-        for k, v in self.pts_to_line.items():
-            self.line_to_pts[line_val_to_int[line.getHash(v)]].append(k)
-
-        cnt_odd = 0
-        cnt_left_over = 0
-        remove_key = []
-        add_key = []
-        for k, v in self.line_to_pts.items():
-            if len(v) == 1:
-                # 처음 발생 -> Point 홀수 사용
-                if cnt_odd == 0:
-                    cnt_odd += 1
-                    remove_key.append(k)
-                    continue
-
-                else:
-                    raise Exception("Line With One Point Mapped ", len(v))
-                    exit(1)
-
-            if len(v) > 2:
-                remove_key.append(k)
-
-                if np.isclose(np.linalg.norm(self.pts_to_line[v[0]]), 0):
-                    print("Skipping Line With Zero Vector")
-                    continue
-
-                # Check If Pairs are of identical points
-                if len(v) % 2 == 0:
-                    _temp = defaultdict(list)
-                    pivot = line.getHash(self.pts_3d_query[v[0]].xyz)
-                    _temp[pivot].append(v[0])
-                    for i in range(1, len(v)):
-                        cur = line.getHash(self.pts_3d_query[v[i]].xyz)
-                        _temp[cur].append(v[i])
-
-                    if len(_temp) != 2:
-                        cnt_left_over += 1
-                        continue
-                    
-                    _k1, _k2 = _temp.keys()
-                    for _ii in range(len(_temp[_k1])):
-                        add_key.append([_temp[_k1][_ii], _temp[_k2][_ii]])
-                    
-                    continue
-
-                else:
-                    raise Exception("Line with More than Two Points Mapped ", len(v))
-                    exit(1)
-            
-        for r_key in remove_key:
-            self.line_to_pts.pop(r_key)
-            
-
     """
     Save recovered 3D point from line cloud using specified estimator.
     Swap features, modify sparsity.
@@ -387,7 +316,7 @@ class Master(metaclass=ABCMeta):
 
         print(f"Saving L2P reconstruction result for {self.dataset} \n\
               with Sparsity: {sparsity_level}, Feature swap: No swap, Noise: {noise_level}")
-        filename = "_".join([self.map_type, self.dataset, estimate_type,'sp'+str(sparsity_level),'n'+str(noise_level),'sw'+str(0.0)]) + ".txt"
+        filename = "_".join([self.map_type, self.dataset, estimate_type,'sp'+str(sparsity_level),'n'+str(noise_level),'sw'+str(0)]) + ".txt"
         fout = os.path.join(recon_output_path,filename)
         save.save_colmap_spf(fout,estimatedPoints,self.id_to_ind_recon,self.pts_3d_query)
 
@@ -410,59 +339,6 @@ class Master(metaclass=ABCMeta):
                 save.save_colmap_spf(fout,estimatedPoints,self.id_to_ind_recon[0][i],self.pts_3d_query)
             elif estimate_type=='TPF':
                 save.save_colmap_tpf(fout,estimatedPoints[i],self.id_to_ind_recon,self.pts_3d_query)
-
-    """
-     Recover 3D points from line cloud using specified estimator.
-     Swap features in case of PPL/PPL+.
-
-     @param {string} estimator (SPF, TPF).
-    """
-    @abstractmethod
-    def recoverPts(self):
-        pass
-    
-    def recoverPPLbase(self,estimator, sparsity_level, noise_level):
-        pts_A = []
-        pts_B = []
-        self.ind_to_id_recon = [{},{}]
-        self.id_to_ind_recon = [{},{}]
-        self.sparse_pts_3d_ids=[]
-        self.points_3D_recon = []
-        self.lines_3D_recon = []
-        for i,_lk in enumerate(self.sparse_line_3d_ids):
-            _pts_3d_id1, _pts_3d_id2 = self.line_to_pts[_lk]
-            self.sparse_pts_3d_ids.extend([_pts_3d_id1,_pts_3d_id2])
-            self.lines_3D_recon.append(self.pts_to_line[_pts_3d_id1])
-            pts_A.append(self.pts_3d_query[_pts_3d_id1].xyz)
-            pts_B.append(self.pts_3d_query[_pts_3d_id2].xyz)
-            self.id_to_ind_recon[0][_pts_3d_id1] = i
-            self.ind_to_id_recon[0][i] = _pts_3d_id1
-            self.id_to_ind_recon[1][_pts_3d_id2] = i
-            self.ind_to_id_recon[1][i] = _pts_3d_id2
-        
-        pts_A = np.array(pts_A)
-        pts_B = np.array(pts_B)
-        self.lines_3D_recon = np.array(self.lines_3D_recon)
-        
-        self.points_3D_recon.extend([pts_A, pts_B])
-        print("Total recon line",len(self.lines_3D_recon))
-        
-        swap_level = VAR.SWAP_RATIO
-        ref_iter = VAR.REFINE_ITER
-        
-        if estimator=='SPF':
-            # Coarse estimation
-            est, _ = calculate.coarse_est_spf(self.points_3D_recon[0], self.lines_3D_recon)
-            # Refined estimation
-            ests_pts, self.ind_to_id_recon, self.id_to_ind_recon = calculate.refine_est_spf_harsh(self.points_3D_recon, self.lines_3D_recon, self.ind_to_id_recon, swap_level, est, ref_iter)
-            info = [sparsity_level, noise_level, swap_level, estimator]
-            self.saveReconpointswithswap(ests_pts,info)
-
-        if estimator=='TPF':
-            # Coarse estimation
-            ests_pts = calculate.coarse_est_tpf(self.points_3D_recon, self.lines_3D_recon, swap_level)
-            info = [sparsity_level, noise_level, swap_level, estimator]
-            self.saveReconpointswithswap(ests_pts,info)
     
     """
      Test line & point matches.
@@ -498,6 +374,5 @@ class Master(metaclass=ABCMeta):
 
         recon_path = os.path.join(self.output_path,"L2Precon")
         inv_q_path = os.path.join(self.output_path,"Quality")
-
         vars = [VAR.INPUT_ATTR,VAR.SCALE_SIZE,VAR.CROP_SIZE,VAR.SAMPLE_SIZE,device]
         reconstruction.invsfm(self.checkedfiles,self.basepath,recon_path,inv_q_path,vars, self.output_path)
