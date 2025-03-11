@@ -68,40 +68,40 @@ Directories of data are organized like below.
 │    └─Scene (apt1_living, chess)
 │      ├─old_gt_(re)triangulated (From Brachman et al., ICCV 2021)
 |          ├─ raw_depth: Calibrated Depth Images
-|          ├─ cameras.bin
-|          ├─ images.bin
-|          ├─ points3D.bin
+|          ├─ cameras.bin, images.bin, points3D.bin: COLMAP files
 |          ├─ list_test.txt: Text of query images
 |          ├─ points3D_with_fakeray_aug1_var0_10: Sphere cloud with 50% TP ratio
 |          ├─ points3D_with_fakeray_aug2_var0_10: Sphere cloud with 33% TP ratio
 |          ├─ points3D_with_fakeray_aug3_var0_10: Sphere cloud with 25% TP ratio
-│      ├─pgt_triangulated 
-|          ├─ cameras.bin
-|          ├─ cameras.txt
-|          ├─ images.bin
-|          ├─ images.txt
-|          ├─ points3D.bin
-|          ├─ points3D.txt
-|          ├─ database.db
-|          ├─ list_test.txt: Text of query images    
+│      ├─pgt_triangulated (Custom dataset)
+|          ├─ cameras.bin, cameras.txt, images.bin, images.txt, points3D.bin, points3D.txt, database.db
+|          ├─ list_test.txt: Text of query images
+|          ├─ points3D_with_fakeray_aug1_var0_10: Sphere cloud with 50% TP ratio
+|          ├─ points3D_with_fakeray_aug2_var0_10: Sphere cloud with 33% TP ratio
+|          ├─ points3D_with_fakeray_aug3_var0_10: Sphere cloud with 25% TP ratio
 │      ├─test (RGB query images)
 |         ├─rgb        
 ```
 
-:point_right: To generate the each type of line cloud and to estimate pose & recover the point cloud from this
-
+:point_right: Pose estimation 
 ```
-/usr/local/bin/python main.py
+bash localization_12scene.sh
+bash localization_7scene.sh
 ```
 
-You can change your options with the parser in `main.py`.
-Or else can manipulate the miute options with `static/variable.py`.
+:point_right: Inversion at test camera pose 
+```
+bash test_inversion_12scene.sh
+bash test_inversion_7scene.sh
+```
+
+:point_right: Please refer to `static/variable.py` to manipulate options.
 
 The results are stored in `output` folder.
-In the folder, recovered point clouds, pose errors, and recovered image qualities are stored in `Dataset_name/Scene/L2Precon`,`Dataset_name/Scene/PoseAccuracy`,`Dataset_name/Scene/Quality` respectively.
-The recovered images will be saved in `dataset/Dataset_name/Scene/invsfmIMG/`.
+In the folder, recovered point clouds, pose errors, and recovered image qualities are stored in `Dataset_name/Scene/L2Precon`,`Dataset_name/Scene/old_gt_(re)triangulated`,`Dataset_name/Scene/Quality` respectively.
+The recovered images will be saved in `output/Dataset_name/Scene/invsfmIMG/`.
 
--->
+--> We have corrected the LPIPS measurement code after submitting the camera-ready paper. This correction does not affect the overall trends in our experimental results. We apologize for the mistake.
 
 ## Citation
 ```bibtex
