@@ -17,7 +17,6 @@ echo Build eigen completed!
 
 echo Build poselib
 cd ../../PoseLib
-# cd PoseLib
 if [ -d "_build" ]; then
     rm -r _build
 fi

@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import open3d as o3d
+import lpips
 from PIL import Image
 
 import utils.invsfm.load_data_edit as ld
@@ -472,6 +473,16 @@ def get_query_image_names(query_txt):
     
     return query_img_names
 
+def get_query_image_names_new(query_txt):
+    query_img_names = []
+    with open(query_txt, "r") as f:
+        while True:
+            line = f.readline()
+            if not line:
+                break
+            query_img_names.append(line.split('/')[-1].strip())
+    
+    return query_img_names
 def recon_scenes(prm, paths, fp, imgsave_dir, mydevice):
     
     global start
@@ -482,7 +493,9 @@ def recon_scenes(prm, paths, fp, imgsave_dir, mydevice):
     
     path_db,path_pts3d,path_cameras,path_images,path_querytxt,path_queryfolder = paths
 
-    imgname_list = get_query_image_names(path_querytxt)
+    # imgname_list = get_query_image_names(path_querytxt)
+    imgname_list = get_query_image_names_new(path_querytxt)
+
     imgID_list = getQueryImageId(imgname_list, path_images)
     iter_num = len(imgID_list)//prm.num_samples
     last_iter_num = len(imgID_list)%prm.num_samples
@@ -514,6 +527,31 @@ def cal_mae(img1, img2):
     mae = np.mean(np.abs(img1-img2))
     return mae
 
+def cal_lpips(img1, img2, loss_fn, device):
+    
+    img1 = img1.astype(np.float64)
+    img2 = img2.astype(np.float64)
+    # print('img1 shape:', img1.shape) # 512 512 3
+    # print('img2 shape:', img2.shape) # 512 512 3
+    # print('img1 min:', np.min(img1), 'img1 max:', np.max(img1)) # [1, 3, 512, 512]
+    # print('img2 min:', np.min(img2), 'img2 max:', np.max(img2)) # 
+
+    img1_tensor = torch.from_numpy(img1).permute(2, 0, 1).unsqueeze(0).float() / 255.0 
+    img2_tensor = torch.from_numpy(img2).permute(2, 0, 1).unsqueeze(0).float() / 255.0
+    # print('img1_tensor shape:', img1_tensor.shape) # [1, 3, 512, 512]
+    # print('img2_tensor shape:', img2_tensor.shape) # [1, 3, 512, 512]
+    
+    img1_tensor = (img1_tensor-0.5) * 2
+    img2_tensor = (img2_tensor-0.5) * 2 
+    # print('img1_tensor min:', torch.min(img1_tensor), 'img1_tensor max:', torch.max(img1_tensor)) # img1_tensor min: tensor(-1.) img1_tensor max: tensor(0.9922) 
+    # print('img2_tensor min:', torch.min(img2_tensor), 'img2_tensor max:', torch.max(img2_tensor)) # img2_tensor min: tensor(-1.) img2_tensor max: tensor(0.9843)
+    
+    img1_tensor = img1_tensor.to(device)
+    img2_tensor = img2_tensor.to(device)
+    
+    lpips_value = loss_fn(img1_tensor, img2_tensor).cpu().detach().item()
+    
+    return lpips_value
 def cal_psnr_ssim_mae(ori_img_dir, img_dir):
     ori_img = np.array(Image.open(ori_img_dir))
     img = np.array(Image.open(img_dir))
@@ -522,6 +560,29 @@ def cal_psnr_ssim_mae(ori_img_dir, img_dir):
     mae = cal_mae(ori_img, img)
     return psnr, ssim, mae
 
+def cal_psnr_ssim_mae_lpips(ori_img_dir, img_dir, loss_fn, device):
+    
+    ori_img = np.array(Image.open(ori_img_dir))
+    img = np.array(Image.open(img_dir))
+    
+    ## If original image is grayscale, convert img into gray 
+    if len(ori_img.shape) == 2 or ori_img.shape != (512, 512, 3):
+        img_gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+        print('Grayscaled img shape:', img.shape)
+        psnr = calculate_psnr(ori_img, img_gray)
+        ssim = skimage.metrics.structural_similarity(ori_img, img_gray, data_range=255)
+        mae = cal_mae(ori_img, img_gray)
+        ori_img_rgb = cv2.cvtColor(ori_img, cv2.COLOR_GRAY2BGR)
+        lpips = cal_lpips(ori_img_rgb, img, loss_fn, device)
+
+    else:
+        psnr = calculate_psnr(ori_img, img)
+        ssim = skimage.metrics.structural_similarity(ori_img, img, channel_axis=2, data_range=255)
+        mae = cal_mae(ori_img, img)
+        lpips = cal_lpips(ori_img, img, loss_fn, device)
+    
+    return psnr, ssim, mae, lpips
+
 def savetxt(save_fp, eval_opt, ptsname, quality_values):
     with open(os.path.join(save_fp,f'{eval_opt}_{ptsname}'), 'w', encoding='UTF-8') as f:
         f.write('MEAN: '+str(sum(quality_values)/len(quality_values))+'\n')
@@ -529,11 +590,16 @@ def savetxt(save_fp, eval_opt, ptsname, quality_values):
         for value in quality_values:
             f.write(str(value) + '\n')
 
-def eval_imgs(src_imgs_dir, imgs_dir, txtname_pts, eval_fp):
+def eval_imgs(src_imgs_dir, imgs_dir, txtname_pts, eval_fp, device):
     src_img_list = os.listdir(src_imgs_dir)
     src_imgs_list = [img for img in src_img_list if img[-3:]=='png']
     img_list = os.listdir(imgs_dir)
     imgs_list = [img for img in img_list if img[-3:]=='png']
+        
+    print('VGG16 used is used for LPIPS evaluation')
+    net_name = 'vgg'
+    import lpips
+    loss_fn = lpips.LPIPS(net=net_name).to(device)
     
     for i in imgs_list:
         if i in src_imgs_list:
@@ -545,19 +611,25 @@ def eval_imgs(src_imgs_dir, imgs_dir, txtname_pts, eval_fp):
     ssim_list = []
     psnr_list = []
     mae_list = []
+    lpips_list = []
+
     
     os.makedirs(eval_fp,exist_ok=True)
     for img in imgs_list:
         src_img = os.path.join(src_imgs_dir,img)
         img_dir = os.path.join(imgs_dir,img)
-        psnr, ssim, mae = cal_psnr_ssim_mae(src_img, img_dir)
+        psnr, ssim, mae, lpips = cal_psnr_ssim_mae_lpips(src_img, img_dir, loss_fn, device)
         psnr_list.append(psnr)
         ssim_list.append(ssim)
         mae_list.append(mae)
+        lpips_list.append(lpips)
+
         
     savetxt(eval_fp,'PSNR', txtname_pts, psnr_list)
     savetxt(eval_fp,'SSIM', txtname_pts, ssim_list)
     savetxt(eval_fp,'MAE', txtname_pts, mae_list)
+    savetxt(eval_fp,'LPIPS', txtname_pts, lpips_list)
+
     print("Evaluation Finished!\n")
 
 def mk_src(src_dir,paths,prm):
@@ -568,7 +640,27 @@ def mk_src(src_dir,paths,prm):
         path_db,path_pts3d,path_cameras,path_images,path_querytxt,path_queryfolder = paths
         os.makedirs(src_dir,exist_ok=True)
         print(f'Saving src files to {src_dir}...')
-        query_files =  get_query_image_names(path_querytxt)
+        # query_files =  get_query_image_names(path_querytxt)
+        query_files =  get_query_image_names_new(path_querytxt)
+
+        for file in query_files:
+            src_img = np.array(Image.open(os.path.join(path_queryfolder,file)))
+            src_img = ld.scale_crop(src_img, prm.scale_size, prm.crop_size)
+            src_img_ = Image.fromarray(src_img.astype(np.uint8))
+            src_img_.save(os.path.join(src_dir,file[:-3]+'png'))
+        print('Done!')
+        
+        return 0
+    
+def mk_src_new(src_dir,paths,prm):
+    if os.path.exists(src_dir):
+        print("Scr already exists")
+        return 1
+    else:
+        path_db,path_pts3d,path_cameras,path_images,path_querytxt,path_queryfolder = paths
+        os.makedirs(src_dir,exist_ok=True)
+        print(f'Saving src files to {src_dir}...')
+        query_files =  get_query_image_names_new(path_querytxt)
         for file in query_files:
             src_img = np.array(Image.open(os.path.join(path_queryfolder,file)))
             src_img = ld.scale_crop(src_img, prm.scale_size, prm.crop_size)
@@ -587,6 +679,17 @@ def get_files_invsfm(data_path,recon_pts_path,recontxt):
     path_queryfolder = os.path.join(data_path,'query')
 
     return [path_db,path_pts3d,path_cameras,path_images,path_querytxt,path_queryfolder]
+
+def get_files_invsfm_new(data_path,recon_pts_path,recontxt):
+    path_pts3d = os.path.join(recon_pts_path,recontxt)
+    path_cameras = os.path.join(data_path, variable.PGT_TYPE, 'cameras.txt')
+    path_images = os.path.join(data_path, variable.PGT_TYPE, 'images.txt')
+    path_db = os.path.join(data_path, variable.PGT_TYPE, 'database.db')
+    path_querytxt = os.path.join(data_path, variable.PGT_TYPE, 'list_test.txt')
+    path_queryfolder = os.path.join(data_path, 'test', 'rgb')
+
+    return [path_db,path_pts3d,path_cameras,path_images,path_querytxt,path_queryfolder]
+
 
 class OPTIONS():
     def __init__(self,input_attr, scale_size, crop_size, sample_size):

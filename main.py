@@ -4,9 +4,6 @@ import ast
 import numpy as np
 
 from domain.pointcloud import PointCloud
-from domain.olc import OLC
-from domain.ppl import PPL
-from domain.pplplus import PPLplus
 from domain.spherecloud import Spherecloud
 
 from static import variable
@@ -34,10 +31,9 @@ def arg_as_list(s):
 def parseArgument():
     parser = argparse.ArgumentParser(description='Process Colmap Localization & Recover Images.')
     
-    parser.add_argument('-d', '--dataset', type=str,
-                        help='Colmap dataset to run localization test. [gerrard_hall, graham_hall, person_hall, south_building]',
-                        default="chess")
-
+    parser.add_argument('-d', '--dataset', type=arg_as_list,
+                    help='Colmap dataset to run localization test. [gerrard_hall, graham_hall, person_hall, south_building]',
+                    default=['apt1_kitchen'])
     parser.add_argument('-e','--estimate', type = str2bool, default = True, help = 'estimate camera pose')
     parser.add_argument('-r','--recover', type = str2bool, default = False, help = 'recover images')
     parser.add_argument('-t','--test', type = str2bool, default = False, help = 'check the line, index consistency')
@@ -54,68 +50,63 @@ def parseArgument():
     return args.dataset, args.estimate, args.recover, args.invsfm, args.test, args.onlyinv, args.gpus
 
 def main():
-    dataset, estimate_pose, recover_pts, recon_img, test, onlyinv, device = parseArgument()
-    print('Dataset:', dataset)
-    variable.raise_errors(dataset)
+    # dataset, estimate_pose, recover_pts, recon_img, test, onlyinv, device = parseArgument()
     
-    instances = []
-    for inst in variable.LINE_TYPE:
-        if inst.lower() == "pc":
-            instances.append(PointCloud(cur_dir, dataset))
+    datasets, estimate_pose, recover_pts, recon_img, test, onlyinv, device = parseArgument()
+    for dataset in datasets:
 
-        elif inst.lower() == "olc":
-            instances.append(OLC(cur_dir, dataset))
+        print('Dataset:', dataset)
+        variable.raise_errors(dataset)
+        
+        instances = []
+        for inst in variable.LINE_TYPE:
+            if inst.lower() == "pc":
+                instances.append(PointCloud(cur_dir, dataset))
+                
+            elif inst.lower() == "spherecloud":
+                instances.append(Spherecloud(cur_dir, dataset))
+            else:
+                raise Exception("Map type not supported", inst)
 
-        elif inst.lower() == "ppl":
-            instances.append(PPL(cur_dir, dataset))
+        if not onlyinv:
+            for inst in instances:
+                inst.makeLineCloud()
 
-        elif inst.lower() == "pplplus":
-            instances.append(PPLplus(cur_dir, dataset))
+                # Sparsity only: noise level = 0
+                # Noise only: sparisty level = 1
+                # Sparsity & Noise: set any float to sparsity & noise level
+                for sparsity_level in variable.SPARSITY_LEVEL:
+                    inst.maskSparsity(sparsity_level)
 
-        elif inst.lower() == "spherecloud":
-            instances.append(Spherecloud(cur_dir, dataset))
-        else:
-            raise Exception("Map type not supported", inst)
+                    # Note that NOISE_LEVEL should have at least one value for this to run
+                    # To turn off noise effect, erase other intensity levels, keeping only zero. 
+                    for noise_level in variable.NOISE_LEVEL:
+                        if estimate_pose:
+                            for query_id in inst.queryIds:
+                                inst.matchCorrespondences(query_id)
+                                inst.addNoise(noise_level)
+                                inst.estimatePose(query_id)
+                            inst.savePose(sparsity_level, noise_level)
+                
+                        if recover_pts:
+                            for esttype in variable.ESTIMATOR:
+                                inst.recoverPts(esttype, sparsity_level, noise_level)
 
-    if not onlyinv:
-        for inst in instances:
-            inst.makeLineCloud()
+                        if test:
+                            for esttype in variable.ESTIMATOR:
+                                inst.test(recover_pts,esttype)
 
-            # Sparsity only: noise level = 0
-            # Noise only: sparisty level = 1
-            # Sparsity & Noise: set any float to sparsity & noise level
-            for sparsity_level in variable.SPARSITY_LEVEL:
-                inst.maskSparsity(sparsity_level)
-
-                # Note that NOISE_LEVEL should have at least one value for this to run
-                # To turn off noise effect, erase other intensity levels, keeping only zero. 
-                for noise_level in variable.NOISE_LEVEL:
-                    if estimate_pose:
-                        for query_id in inst.queryIds:
-                            inst.matchCorrespondences(query_id)
-                            inst.addNoise(noise_level)
-                            inst.estimatePose(query_id)
-                        inst.savePose(sparsity_level, noise_level)
-            
-                    if recover_pts:
-                        for esttype in variable.ESTIMATOR:
-                            inst.recoverPts(esttype, sparsity_level, noise_level)
-
-                    if test:
-                        for esttype in variable.ESTIMATOR:
-                            inst.test(recover_pts,esttype)
-
-    if onlyinv or recon_img:
-        for inst in instances:
-            for sp in variable.SPARSITY_LEVEL:
-                for n in variable.NOISE_LEVEL:
-                    for est in variable.ESTIMATOR:
-                        for sw in variable.SWAP_RATIO:
-                            if inst.map_type=='PC':
-                                est = 'noest'
-                            inst.append_filenames(sp,n,est,sw)
-            inst.checkexists()
-            inst.reconImg(device)
+        if onlyinv or recon_img:
+            for inst in instances:
+                for sp in variable.SPARSITY_LEVEL:
+                    for n in variable.NOISE_LEVEL:
+                        for est in variable.ESTIMATOR:
+                            for sw in variable.SWAP_RATIO:
+                                if inst.map_type=='PC':
+                                    est = 'noest'
+                                inst.append_filenames(sp,n,est,sw)
+                inst.checkexists()
+                inst.reconImg(device)
 
 # Sample Command
 # python main.py -d apt1_living -e true -r false -t false

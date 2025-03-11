@@ -63,12 +63,10 @@ def invsfm(inputfiles,src_path,recon_pts_path,eval_path,params,output_path):
         
         # Recon image path
         recon_imgs_dir = os.path.join(output_path,'invsfmIMG',file.rstrip('.txt'))
-        # recon_imgs_dir = os.path.join(output_path, 'invsfmIMG(rebuttal)', file.rstrip('.txt')) 
 
-        paths = get_files_invsfm(src_path,recon_pts_path,file)
+        paths = get_files_invsfm_new(src_path,recon_pts_path,file)
         mk_src(src_img_dir,paths,prm)
         recon_scenes(prm, paths, fp, recon_imgs_dir,device)
         print('Evaluation module initiated.')
-        eval_imgs(src_img_dir, recon_imgs_dir, file, eval_path)
-
+        eval_imgs(src_img_dir, recon_imgs_dir, file, eval_path, device)
 
