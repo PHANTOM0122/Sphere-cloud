@@ -56,20 +56,25 @@ class Spherecloud(Master):
         # Ids of 3D points from COLMAP
         self.pts_3d_ids = list(self.pts_3d_query.keys())
 
+        self.use_pc_centroid = variable.USE_CENTROID
+        
         # Shuffle 3D points
         np.random.shuffle(self.pts_3d_ids)
             
     def makeLineCloud(self):
 
         print("Sphere cloud: Line between 3D points and centroid")
+        _pts_3d_origin = np.array([v.xyz for v in self.pts_3d_query_origin.values()]) # Get (x,y,z) of original 3D points
         _pts_3d = np.array([v.xyz for v in self.pts_3d_query.values()]) # Get (x,y,z) of 3D points
         _pts_ids = np.array([k for k in self.pts_3d_query.keys()]) # Get COLMAP indices of 3D points
 
-        print('Set a center point as centroid')            
-        self.centroid_pt = np.mean(_pts_3d, axis=0)
-        _pts_3d -= self.centroid_pt
-        
-        self.center_pt = np.array([0.0, 0.0, 0.0])        
+        print('Set a center point as centroid')
+        if self.use_pc_centroid:            
+            self.centroid_pt = np.mean(_pts_3d_origin, axis=0)
+            _pts_3d -= self.centroid_pt
+        print('Re-assing ray center')
+        self.center_pt = np.array([0.0, 0.0, 0.0])
+        # Draw 3D rays(lines)
         self.points_3D, self.line_3d, self.ind_to_id, self.id_to_ind = line.drawlines_ray_clouds_single(_pts_3d, _pts_ids, self.center_pt)
 
         for i, key in enumerate(self.pts_3d_query.keys()):
@@ -91,7 +96,8 @@ class Spherecloud(Master):
 
         # Substarct centroid
         if len(p2) > 0:
-            p2 -= self.centroid_pt
+            if self.use_pc_centroid:
+                p2 -= self.centroid_pt
             
         # Mapping Connected 3D points COLMAP IDs -> point indices!
         pts_to_ind = {}
@@ -135,29 +141,28 @@ class Spherecloud(Master):
             self.t_gt = t_gt
             
             # Make pts3d_RGBD_gt (COLMAP 3D points into Cam coordinate)
-            print('Using pseudo-GT RGB-D points')
+            print('Generating pseudo-GT RGB-D points')
             pts3d_RGBD_gt = (R_gt @ self._p2.T).T + np.tile(t_gt, [len(self._p2), 1])
-            
-            ## Recalib as the center of cooridnate moved to centroid
-            self.R_gt = R_gt
-            
-            # Camera center 
-            c_gt = -R_gt.T @ t_gt
-            c_gt_centroid = c_gt - self.centroid_pt
-            
-            # Assign new translation
-            self.t_gt = -R_gt @ c_gt_centroid
-            
-            # Assign new RGBD-GT with updated GT pose
-            pts3d_RGBD_gt = (self.R_gt @ self._p2.T).T + np.tile(self.t_gt , [len(self._p2), 1])
-                                    
+            if self.use_pc_centroid:            
+                self.R_gt = R_gt
+                
+                # Camera center 
+                c_gt = -R_gt.T @ t_gt
+                c_gt_centroid = c_gt - self.centroid_pt
+                
+                # Assign new translation
+                self.t_gt = -R_gt @ c_gt_centroid
+                
+                # Assign new RGBD-GT with updated GT pose
+                pts3d_RGBD_gt = (self.R_gt @ self._p2.T).T + np.tile(self.t_gt , [len(self._p2), 1])
+                
             if variable.getDatasetName(self.dataset) == '12scenes':
                 depth_img, self.no_depth_file = self.load_depth_img(gt_img.name.split('/')[1])
             
             elif variable.getDatasetName(self.dataset) == '7scenes':    
                 depth_img, self.no_depth_file = self.load_depth_img(gt_img.name.replace('/', '_'))
-            
-            # If no depth skip..
+            self.gt_img_name = gt_img.name
+
             if self.no_depth_file == False:
                         
                 # Make 3D point cloud from depth imgae
@@ -173,6 +178,7 @@ class Spherecloud(Master):
                 # Check data
                 print('Found correspondences:', len(self.pts3d_RGBD))
                 assert len(self.pts3d_RGBD) == len(self.pts3d_COLMAP) == len(self.points2D_query) == len(self.rays3D)
+            # If no depth skip..
             else:
                 print('No depth file!')
         
@@ -194,12 +200,12 @@ class Spherecloud(Master):
             cam_dict = pe.convert_cam(self.camera_dict_gt[cam_id])
             print('gt_img.name:', gt_img.name)
 
-            lambda1 = variable.LAMBDA1
-            lambda2 = variable.LAMBDA2
+            lambda1 = float(variable.LAMBDA1)
+            lambda2 = float(variable.LAMBDA2)
             
             start = time.time()            
             ### Use RGBD 3D points
-            res = poselib.estimate_vp3p_absolute_pose(self.pts3d_COLMAP, self.rays3D, self.points2D_query, self.pts3d_RGBD, [cam_dict], lambda1, lambda2, variable.RANSAC_OPTIONS, variable.BUNDLE_OPTIONS, variable.REFINE_OPTION)
+            res = poselib.estimate_sphere_pose(self.pts3d_COLMAP, self.rays3D, self.points2D_query, self.pts3d_RGBD, [cam_dict], lambda1, lambda2, variable.RANSAC_OPTIONS, variable.BUNDLE_OPTIONS, variable.REFINE_OPTION)
             end = time.time()
                 
             # Save pose acc
@@ -250,7 +256,7 @@ class Spherecloud(Master):
 
     def reconTest(self, estimator):
         # reconTest
-        recontest.recontestPTidx([self.points_3D_recon], [self.ind_to_id_recon], self.pts_3d_query)
+        recontest.recontest_pt_idx([self.points_3D_recon], [self.ind_to_id_recon], self.pts_3d_query)
 
     def test(self, recover, esttype):
         # recon test
@@ -262,18 +268,11 @@ class Spherecloud(Master):
         
         # Set flag
         no_depth_file = False
-
-        if variable.RESOURCE != 'local':
-            NAS_path = '/workspace/mnt' # Docker environment
-        elif variable.RESOURCE == 'local':
-            NAS_path = '/home/moon/Desktop/mnt' # Local
-            # NAS_path = '/home/moon/Desktop/single_raycloud/dataset' # Local
-
-        dataset_path = os.path.join(NAS_path, variable.getDatasetName(self.dataset), self.dataset)
-        print('dataset_path:', dataset_path)
+        dataset_path = os.path.join(self.curdir, variable.DATASET_MOUNT, variable.getDatasetName(self.dataset), self.dataset, variable.PGT_TYPE)
 
         ## Load raw depth
         folder_path = os.path.join(dataset_path, 'raw_depth')
+
         if variable.getDatasetName(self.dataset) == '7scenes':
             depth_img_name_tmp = query_name.replace('color.png', 'depth.png')
             depth_img_name = depth_img_name_tmp.replace('/', '_')
@@ -283,8 +282,8 @@ class Spherecloud(Master):
             depth_img_name_tmp = query_name.replace('color.jpg', 'depth.png')
             depth_img_name = depth_img_name_tmp
             
-        dataset_path = os.path.join(NAS_path, variable.getDatasetName(self.dataset), self.dataset)
         depth_path = os.path.join(folder_path, depth_img_name)
+
         if not os.path.exists(depth_path):
             no_depth_file = True
             return None, no_depth_file
@@ -324,7 +323,6 @@ class Spherecloud(Master):
                 v -> height
                 u -> width
                 '''
-
                 # RGB keypoint -> to normalized plane -> depth image plane
                 u = (kpt[0] - img_center_x) / focal_length_x * depth_focal_length
                 v = (kpt[1] - img_center_y) / focal_length_y * depth_focal_length
@@ -396,12 +394,7 @@ class Spherecloud(Master):
             self.focal_length = rgb_focal_length
             self.img_center_x = img_center_x
             self.img_center_y = img_center_y
-            
-            if variable.PGT_TYPE == 'sfm_gt':        
-                # SimpleRadial; f, cx, cy, k
-                focal_length_x, focal_length_y, img_center_x, img_center_y = cam_info['params'][0], cam_info['params'][0], cam_info['params'][1], cam_info['params'][2]
-            else:
-                rgb_focal_length, img_center_x, img_center_y = cam_info['params'][0], cam_info['params'][1], cam_info['params'][2]
+            rgb_focal_length, img_center_x, img_center_y = cam_info['params'][0], cam_info['params'][1], cam_info['params'][2]
             
             for idx, kpt in enumerate(points_2D):
                 '''
