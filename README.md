@@ -67,7 +67,7 @@ Directories of data are organized like below.
 |  ├─dataset(12scenes, 7scenes)
 │    └─Scene (apt1_living, chess)
 │      ├─old_gt_(re)triangulated (From Brachman et al., ICCV 2021)
-|          ├─ raw_depth: Calibrated Depth Images
+|          ├─ raw_depth.tar.gz: Calibrated Depth Images. Please unzip before localizaiton.
 |          ├─ cameras.bin, images.bin, points3D.bin: COLMAP files
 |          ├─ list_test.txt: Text of query images
 |          ├─ points3D_with_fakeray_aug1_var0_10: Sphere cloud with 50% TP ratio
