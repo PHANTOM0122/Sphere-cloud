@@ -38,31 +38,12 @@ Download `eigen-3.4.0.tar.gz` library from https://eigen.tuxfamily.org/index.php
 cd Sphere-cloud
 wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
 ```
-
-:point_right: To properly build `poselib`, download the rest of the folders from the [PoseLib](https://github.com/vlarsson/PoseLib).
-We only uploaded the customized code from PoseLib implementing P6L and our modified P3P solver. <br>
-
-```bash
-cd ..
-git clone https://github.com/PoseLib/PoseLib.git
-# Checkout to the version before refactoring "pybind"
-cd PoseLib
-git checkout e5eee3f..0e113ab
-# Overwrite customized local poselib to cloned poselib
-# And move back to original directory
-cd ../
-cp -rf Sphere-cloud/PoseLib/* PoseLib/
-rm -r Sphere-cloud/PoseLib
-mv PoseLib Sphere-cloud/PoseLib
-```
-
 :point_right: Since InvSfM code by Pittaluga et al. is written in tensorflow.v1, Chanhyuk Yun rewritten the whole code to pytorch for the ease of use ([invsfm_torch](https://github.com/ChanhyukYun/invSfM_torch)).
 Download pretrained weights from [InvSfM](https://github.com/francescopittaluga/invsfm).
 Position the `wts` folder to `utils/invsfm/wts`.
 Then, our code will automatically change the weights to torch version and utilize it.
 
 ```bash
-cd Sphere-cloud
 bash start.sh
 ```
 
