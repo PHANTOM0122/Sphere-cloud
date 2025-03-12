@@ -19,7 +19,12 @@ https://github.com/user-attachments/assets/cc71f34e-64dc-4b11-8534-02e178a6c5b2
 
 *************************************
 ### :rocket: **News** 
-:fire: [2024.11.23] We're released the part of our intitial code and now working on extending for journal submission. We'll release the full release after the journal submission. Please keep stay tuned for the full release!
+:fire: [2024.11.23] We're released the intitial code!
+
+##: Additional results beyond paper
+Below is the localization result following the prior works, where the camera positional error was reported in contrast to BMVC paper.
+![image](https://github.com/user-attachments/assets/070d634d-4958-4f8b-a7a1-4cd0afc4bb7a)
+
 
 ## :white_check_mark: Two public datasets!
 - Indoor [(**_7 Scenes_**)](https://www.microsoft.com/en-us/research/project/rgb-d-dataset-7-scenes/) </br>
