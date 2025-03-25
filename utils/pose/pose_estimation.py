@@ -5,12 +5,6 @@ import cv2
 
 pi = math.pi
 
-def error_r(r_pred, r_gt):
-    return np.arccos((np.trace(np.dot(np.transpose(r_pred), r_gt)) - 1) / 2)
-
-def error_t(r_pred, r_gt, t_pred, t_gt):
-    return np.linalg.norm(np.subtract(np.dot(np.transpose(r_pred), t_pred), np.dot(np.transpose(r_gt), t_gt)))
-
 def get_quaternion_from_euler(roll, pitch, yaw):
   """
   Convert an Euler angle to a quaternion.
