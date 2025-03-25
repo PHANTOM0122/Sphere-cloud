@@ -21,7 +21,8 @@ https://github.com/user-attachments/assets/cc71f34e-64dc-4b11-8534-02e178a6c5b2
 ### :rocket: **News** 
 :fire: [2024.11.23] We're released the intitial code!
 
-##: Additional results beyond paper
+##: Additional results beyond the paper
+
 Below is the localization result following the prior works, where the camera positional error was reported in contrast to BMVC paper.
 ![image](https://github.com/user-attachments/assets/070d634d-4958-4f8b-a7a1-4cd0afc4bb7a)
 
